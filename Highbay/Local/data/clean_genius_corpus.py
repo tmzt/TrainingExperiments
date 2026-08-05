@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Produce the cleaned Genius training corpus from data/genius/*.jsonl.
+"""Produce the cleaned Genius training corpus from the raw files in source/.
 
 The inputs are Gemini-generated training data, so their shape carries
 generation artifacts that a hand-authored schema would not. This script is the
@@ -28,14 +28,18 @@ WHAT IT DELIBERATELY LEAVES ALONE:
   * Table and column names, ui_prompt wording, and the choice of columns. Those
     are the content; this script only touches how it was spelled.
 
-This script lives beside the corpus it produces, in the TrainingExperiments
-repo, but the SOURCES live in the Highbay repo. That repo is not always a
-fixed distance away - TrainingExperiments is cloned standalone on Colab - so
-the source directory is resolved by search and can always be given outright:
+Sources, script and outputs all live in this directory, so a clone of this
+repo alone is enough to regenerate:
+
+    source/mobile_data_prompts.jsonl   the raw generated corpora, verbatim -
+    source/prompts.jsonl               BOM, array-not-JSONL and all
+    clean_genius_corpus.py             this
+    genius_corpus_clean.jsonl          derived
+    genius_chatml.jsonl                derived
 
 Usage:
-    python3 clean_genius_corpus.py                 # search the usual places
-    python3 clean_genius_corpus.py --src PATH      # say where data/genius is
+    python3 clean_genius_corpus.py                 # source/ beside this file
+    python3 clean_genius_corpus.py --src PATH      # read the corpora elsewhere
     python3 clean_genius_corpus.py --out DIR       # default: beside this file
 """
 import argparse
@@ -47,14 +51,22 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SOURCES = ["mobile_data_prompts.jsonl", "prompts.jsonl"]
 
-# Ordered guesses, first hit wins. Each is a real place this has to work from:
-# checked out inside the Highbay repo's deps/, run from a Highbay checkout, or
-# on a Colab runtime with the files on Drive.
-SRC_CANDIDATES = [
-    HERE.parents[4] / "data/genius",   # <highbay>/deps/TrainingExperiments/Highbay/Local/data
-    Path.cwd() / "data/genius",
-    Path("/content/drive/MyDrive/Training Data"),
-]
+# Ordered guesses, first hit wins. `source/` is the answer for a standalone
+# clone and is therefore first; the rest are fallbacks for someone who has the
+# Highbay tree or a Colab runtime with the files staged on Drive.
+def _src_candidates():
+    out = [HERE / "source"]
+    # <highbay>/deps/TrainingExperiments/Highbay/Local/data is five levels down,
+    # but a shallow clone has fewer parents than that - indexing blindly raises
+    # IndexError before the search ever runs, which is how this was found.
+    if len(HERE.parents) > 4:
+        out.append(HERE.parents[4] / "data/genius")
+    out.append(Path.cwd() / "data/genius")
+    out.append(Path("/content/drive/MyDrive/Training Data"))
+    return out
+
+
+SRC_CANDIDATES = _src_candidates()
 
 
 def resolve_src(explicit):
