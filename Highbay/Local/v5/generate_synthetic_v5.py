@@ -6,7 +6,7 @@ DRIVE_BASE = "/content/drive/MyDrive/HighbayGeniusTraining"
 OUTPUT_DIR = os.path.join(DRIVE_BASE, "datasets", "processed")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "synthetic_typed_markdown_v5.json")
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "synthetic_typed_markdown_v5.jsonl")
 
 # Gemini Pro Generation Logic
 def generate_synthetic_data():
@@ -18,8 +18,9 @@ def generate_synthetic_data():
         }
     ]
     
-    with open(OUTPUT_FILE, "w") as f:
-        json.dump(synthetic_dataset, f, indent=2)
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        for item in synthetic_dataset:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
     print(f"Dataset successfully written to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
